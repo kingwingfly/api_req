@@ -12,19 +12,6 @@ use reqwest::{Client, Method, header::HeaderMap};
 use serde::{Serialize, de::DeserializeOwned};
 use std::sync::LazyLock;
 
-fn client() -> Client {
-    static CLIENT: LazyLock<Client> = LazyLock::new(|| {
-        dotenv::dotenv().ok();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            "api-key",
-            std::env::var("API_KEY").unwrap().try_into().unwrap(),
-        );
-        Client::builder().default_headers(headers).build().unwrap()
-    });
-    CLIENT.clone()
-}
-
 /// Define a API that can be called
 ///
 /// # Example
@@ -33,7 +20,11 @@ fn client() -> Client {
 /// use serde::Serialize;
 ///
 /// #[derive(Debug, Clone, Serialize, Payload)]
-/// #[payload(path = "/payments/{payment_id}", method = "GET")]
+/// #[payload(
+///     path = "/api/v1/{payment_id}",
+///     method = "GET",
+///     headers = (("k1", "v1"),)   // headers added to the default headers
+/// )]
 /// pub struct CompletePayload {
 ///     #[serde(skip_serializing)]
 ///     payment_id: String,
@@ -42,6 +33,11 @@ fn client() -> Client {
 pub trait Payload: Send + Sync + Serialize + 'static {
     /// The method of the API
     const METHOD: &'static str;
+
+    /// The headers for the API.
+    fn headers(&self) -> Option<HeaderMap> {
+        None
+    }
 
     /// The path for the API.
     fn path(&self) -> Option<String> {
@@ -54,9 +50,14 @@ pub trait Payload: Send + Sync + Serialize + 'static {
 /// # Example
 /// ```
 /// use api_req::ApiCaller;
+/// use reqwest::header;
 ///
 /// #[derive(ApiCaller)]
-/// #[api(base_url = "http://example.com")]
+/// #[api(
+///     base_url = "http://example.com",
+///     default_headers = (("k1", "v1"), (header::ORIGIN, "v2")),
+///     default_headers_env = (("k3", "API_KEY"),)  // header value from env; `,` is essential
+/// )]
 /// struct ExampleApi;
 /// ```
 pub trait ApiCaller {
@@ -69,7 +70,13 @@ pub trait ApiCaller {
         P: Payload,
         O: DeserializeOwned + Send + Sync + 'static,
     {
-        Request::new(payload, Self::BASE_URL.to_string())
+        Request::new(payload, Self::BASE_URL.to_string(), Self::client())
+    }
+
+    /// return a client
+    fn client() -> Client {
+        static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
+        CLIENT.clone()
     }
 }
 
@@ -133,9 +140,9 @@ where
     O: DeserializeOwned + Send + Sync + 'static,
 {
     /// Create a new request
-    pub fn new(payload: P, base_url: String) -> Self {
+    pub fn new(payload: P, base_url: String, client: Client) -> Self {
         Self {
-            client: client(),
+            client,
             base_url,
             payload: Some(payload),
             future: None,
@@ -163,9 +170,12 @@ where
                         match method {
                             Method::POST => {
                                 println!("{}", url);
-                                let response =
-                                    client.request(method, url).json(&payload).send().await?;
-                                response.json::<O>().await.map_err(Into::into)
+                                let mut req = client.request(method, url).json(&payload);
+                                if let Some(headers) = payload.headers() {
+                                    req = req.headers(headers);
+                                }
+                                let resp = req.send().await?;
+                                resp.json::<O>().await.map_err(Into::into)
                             }
                             Method::GET => {
                                 let query = serde_urlencoded::to_string(&payload)
@@ -173,8 +183,12 @@ where
                                 if !query.is_empty() {
                                     url.push_str(&format!("?{}", query));
                                 }
-                                let response = client.request(method, &url).send().await?;
-                                response.json::<O>().await.map_err(Into::into)
+                                let mut req = client.request(method, url);
+                                if let Some(headers) = payload.headers() {
+                                    req = req.headers(headers);
+                                }
+                                let resp = req.send().await?;
+                                resp.json::<O>().await.map_err(Into::into)
                             }
                             _ => Err(format!("Unsupported method: {}", P::METHOD).into()),
                         }

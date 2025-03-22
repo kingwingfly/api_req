@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{DeriveInput, Expr, parse_macro_input};
+use quote::{ToTokens as _, quote};
+use syn::{DeriveInput, Expr, ExprTuple, parse_macro_input, parse2};
 
 pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -8,6 +8,10 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let mut base_url: Option<Expr> = None;
+    let mut default_headers_key: Vec<Expr> = vec![];
+    let mut default_headers_value: Vec<Expr> = vec![];
+    let mut default_headers_env_key: Vec<Expr> = vec![];
+    let mut default_headers_env_value: Vec<Expr> = vec![];
 
     if let Some(attr) = input.attrs.iter().find(|&attr| attr.path().is_ident("api")) {
         attr.parse_nested_meta(|meta| {
@@ -15,6 +19,26 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                 item if item.is_ident("base_url") => {
                     let value = meta.value()?;
                     base_url = value.parse().ok();
+                }
+                item if item.is_ident("default_headers") => {
+                    let value = meta.value()?;
+                    let kvs: ExprTuple = value.parse().unwrap();
+                    for kv in kvs.elems {
+                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
+                        let mut kv = kv.elems.into_iter();
+                        default_headers_key.push(kv.next().unwrap());
+                        default_headers_value.push(kv.next().unwrap());
+                    }
+                }
+                item if item.is_ident("default_headers_env") => {
+                    let value = meta.value()?;
+                    let kvs: ExprTuple = value.parse().unwrap();
+                    for kv in kvs.elems {
+                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
+                        let mut kv = kv.elems.into_iter();
+                        default_headers_env_key.push(kv.next().unwrap());
+                        default_headers_env_value.push(kv.next().unwrap());
+                    }
                 }
                 item => Err(meta.error(format!(
                     "unsupported attribute: {}",
@@ -33,6 +57,29 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         impl #impl_generics::api_req::ApiCaller for #name #ty_generics #where_clause {
             const BASE_URL: &'static str = #base_url;
+
+            /// return a client with default headers
+            fn client() -> ::reqwest::Client {
+                static CLIENT: ::std::sync::LazyLock<::reqwest::Client> = ::std::sync::LazyLock::new(|| {
+                        let mut builder = ::reqwest::Client::builder();
+                        let mut default_headers = ::reqwest::header::HeaderMap::new();
+                        #(
+                            default_headers.insert(
+                                #default_headers_key,
+                                #default_headers_value.parse().unwrap()
+                            );
+                        )*
+                        #(
+                            default_headers.insert(
+                                #default_headers_env_key,
+                                ::std::env::var(#default_headers_env_value).unwrap().parse().unwrap()
+                            );
+                        )*
+                        builder.default_headers(default_headers).build().unwrap()
+                    }
+                );
+                CLIENT.clone()
+            }
         }
     };
 

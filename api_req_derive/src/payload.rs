@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{ToTokens as _, quote};
 use regex::Regex;
-use syn::{DeriveInput, Expr, LitStr, parse_macro_input};
+use syn::{DeriveInput, Expr, ExprTuple, LitStr, parse_macro_input, parse2};
 
 pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -10,6 +10,8 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
 
     let mut path: Expr = syn::parse_str("\"\"").unwrap();
     let mut method: LitStr = syn::parse_str("\"GET\"").unwrap();
+    let mut headers_key: Vec<Expr> = vec![];
+    let mut headers_value: Vec<Expr> = vec![];
 
     if let Some(attr) = input
         .attrs
@@ -41,6 +43,16 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
                     let value = meta.value()?;
                     method = value.parse().unwrap();
                 }
+                item if item.is_ident("headers") => {
+                    let value = meta.value()?;
+                    let kvs: ExprTuple = value.parse().unwrap();
+                    for kv in kvs.elems {
+                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
+                        let mut kv = kv.elems.into_iter();
+                        headers_key.push(kv.next().unwrap());
+                        headers_value.push(kv.next().unwrap());
+                    }
+                }
                 item => Err(meta.error(format!(
                     "unsupported attribute: {}",
                     item.get_ident().unwrap()
@@ -55,9 +67,25 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
         panic!("method must be either GET or POST");
     }
 
+    let headers = if headers_key.is_empty() {
+        quote! { None }
+    } else {
+        quote! {
+            let mut headers = ::reqwest::header::HeaderMap::new();
+            #(
+                headers.insert(#headers_key, #headers_value.parse().unwrap());
+            )*
+            Some(headers)
+        }
+    };
+
     let expanded = quote! {
         impl #impl_generics ::api_req::Payload for #name #ty_generics #where_clause {
             const METHOD: &'static str = #method;
+
+            fn headers(&self) -> Option<::reqwest::header::HeaderMap> {
+                #headers
+            }
 
             fn path(&self) -> Option<String> {
                 Some(#path)
