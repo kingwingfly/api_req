@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req"
 description = "A library for making API requests with ease"
+repository.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true

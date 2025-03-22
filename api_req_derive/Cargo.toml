@@ -5,6 +5,7 @@ edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req_derive"
 description = "Derive macro for api_req"
+repository.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true

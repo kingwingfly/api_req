@@ -3,3 +3,4 @@ members = ["api_req", "api_req_derive"]
 resolver = "2"
 
 [workspace.package]
+repository = "https://github.com/kingwingfly/api_req"
