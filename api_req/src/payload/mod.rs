@@ -1,0 +1,231 @@
+//! Payload
+
+use std::{
+    error::Error,
+    pin::Pin,
+    task::{Context, Poll},
+};
+
+pub use api_req_derive::{ApiCaller, Payload};
+use pin_project::pin_project;
+use reqwest::{Client, Method, header::HeaderMap};
+use serde::{Serialize, de::DeserializeOwned};
+use std::sync::LazyLock;
+
+fn client() -> Client {
+    static CLIENT: LazyLock<Client> = LazyLock::new(|| {
+        dotenv::dotenv().ok();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "api-key",
+            std::env::var("API_KEY").unwrap().try_into().unwrap(),
+        );
+        Client::builder().default_headers(headers).build().unwrap()
+    });
+    CLIENT.clone()
+}
+
+/// Define a API that can be called
+///
+/// # Example
+/// ```
+/// use api_req::Payload;
+/// use serde::Serialize;
+///
+/// #[derive(Debug, Clone, Serialize, Payload)]
+/// #[payload(path = "/payments/{payment_id}", method = "GET")]
+/// pub struct CompletePayload {
+///     #[serde(skip_serializing)]
+///     payment_id: String,
+/// }
+/// ```
+pub trait Payload: Send + Sync + Serialize + 'static {
+    /// The method of the API
+    const METHOD: &'static str;
+
+    /// The path for the API.
+    fn path(&self) -> Option<String> {
+        None
+    }
+}
+
+/// Define a API caller
+///
+/// # Example
+/// ```
+/// use api_req::ApiCaller;
+///
+/// #[derive(ApiCaller)]
+/// #[api(base_url = "http://example.com")]
+/// struct ExampleApi;
+/// ```
+pub trait ApiCaller {
+    /// The baseurl of the API
+    const BASE_URL: &'static str;
+
+    /// return a request future that can be awaited
+    fn request<P, O>(payload: P) -> Request<P, O>
+    where
+        P: Payload,
+        O: DeserializeOwned + Send + Sync + 'static,
+    {
+        Request::new(payload, Self::BASE_URL.to_string())
+    }
+}
+
+/// A request to the API, wrapping the payload into a future.
+///
+/// Create from a ApiCaller and a Payload.
+///
+/// # Example
+/// ```no_run
+/// use api_req::{Payload, ApiCaller, ApiCaller as _};
+/// use serde::{Serialize, Deserialize};
+///
+/// #[derive(Debug, Default, Clone, Serialize, Payload)]
+/// #[payload(path = "/payments/{customer_id}", method = "POST")]
+/// pub struct ExamplePayload {
+///     #[serde(skip_serializing)]
+///     customer_id: String,    // this field is passed as a path parameter
+///     amount: usize,
+/// }
+///
+/// #[derive(Debug, Deserialize)]
+/// struct ExampleResponse {
+///     client_secret: String,
+/// }
+///
+/// #[derive(ApiCaller)]
+/// #[api(base_url = "http://example.com")]
+/// struct ExampleApi;
+/// # async {
+/// let payload = ExamplePayload::default();
+/// let _resp: ExampleResponse = ExampleApi::request(payload).await.unwrap();
+/// # };
+/// // this will send a POST request to http://example.com/payments/{customer_id}
+/// // with json `{"amount": 100}`
+/// ```
+#[allow(clippy::type_complexity)]
+#[pin_project]
+pub struct Request<P, O>
+where
+    P: Payload,
+    O: DeserializeOwned + Send + Sync + 'static,
+{
+    client: Client,
+    base_url: String,
+    payload: Option<P>,
+    future: Option<
+        Pin<
+            Box<
+                dyn Future<Output = Result<O, Box<dyn Error + Send + Sync + 'static>>>
+                    + Send
+                    + Sync
+                    + 'static,
+            >,
+        >,
+    >,
+}
+
+impl<P, O> Request<P, O>
+where
+    P: Payload,
+    O: DeserializeOwned + Send + Sync + 'static,
+{
+    /// Create a new request
+    pub fn new(payload: P, base_url: String) -> Self {
+        Self {
+            client: client(),
+            base_url,
+            payload: Some(payload),
+            future: None,
+        }
+    }
+}
+
+impl<P, O> Future for Request<P, O>
+where
+    P: Payload,
+    O: DeserializeOwned + Send + Sync + 'static,
+{
+    type Output = Result<O, Box<dyn Error + Send + Sync + 'static>>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        if this.payload.is_some() {
+            let payload = this.payload.take().unwrap();
+            let client = this.client.clone();
+            let base_url = this.base_url.drain(..).collect::<String>();
+            let future = Box::pin(async move {
+                match P::METHOD.try_into() {
+                    Ok(method) => {
+                        let mut url = format!("{}{}", base_url, payload.path().unwrap_or_default());
+                        match method {
+                            Method::POST => {
+                                println!("{}", url);
+                                let response =
+                                    client.request(method, url).json(&payload).send().await?;
+                                response.json::<O>().await.map_err(Into::into)
+                            }
+                            Method::GET => {
+                                let query = serde_urlencoded::to_string(&payload)
+                                    .expect("Payload should be urlencode-serializable");
+                                if !query.is_empty() {
+                                    url.push_str(&format!("?{}", query));
+                                }
+                                let response = client.request(method, &url).send().await?;
+                                response.json::<O>().await.map_err(Into::into)
+                            }
+                            _ => Err(format!("Unsupported method: {}", P::METHOD).into()),
+                        }
+                    }
+                    Err(_) => Err(format!("Invalid method: {}", P::METHOD).into()),
+                }
+            });
+            *this.future = Some(future);
+        }
+        let future = this.future.as_mut().unwrap().as_mut();
+        future.poll(cx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, Serialize)]
+    struct TestPayload {
+        amount: usize,
+        currency: String,
+        payment_link: bool,
+        profile_id: String,
+    }
+
+    impl Payload for TestPayload {
+        const METHOD: &'static str = "POST";
+
+        fn path(&self) -> Option<String> {
+            Some("/payments".to_string())
+        }
+    }
+
+    struct HyperApi;
+
+    impl ApiCaller for HyperApi {
+        const BASE_URL: &'static str = "https://sandbox.hyperswitch.io";
+    }
+
+    #[tokio::test]
+    #[ignore = "This test will send a request to the sandbox server"]
+    async fn test_request() {
+        let payload = TestPayload {
+            amount: 100,
+            currency: "CNY".to_string(),
+            payment_link: true,
+            profile_id: "pro_EfLFMGhHt4aaUsg9rAnL".to_string(),
+        };
+        let request = HyperApi::request(payload);
+        let response: serde_json::Value = request.await.unwrap();
+        println!("{:#?}", response);
+    }
+}

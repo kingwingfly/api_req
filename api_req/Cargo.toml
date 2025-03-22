@@ -1,0 +1,22 @@
+[package]
+name = "api_req"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+documentation = "https://docs.rs/api_req"
+description = "A library for making API requests with ease"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+api_req_derive = { path = "../api_req_derive", version = "0.1.0" }
+dotenv = "0.15.0"
+reqwest = { version = "0.12.15", features = ["json"] }
+serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.41"
+serde_json = { version = "1.0" }
+serde_urlencoded = { version = "0.7.0" }
+pin-project = "1.1.10"
