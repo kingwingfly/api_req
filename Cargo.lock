@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "api_req"
-version = "0.1.3-alpha.1"
+version = "0.1.3"
 dependencies = [
  "api_req_derive",
  "dotenv",
@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "api_req_derive"
-version = "0.1.3-alpha.1"
+version = "0.1.3"
 dependencies = [
  "api_req",
  "quote",

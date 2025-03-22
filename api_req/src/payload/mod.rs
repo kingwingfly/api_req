@@ -169,7 +169,6 @@ where
                         let mut url = format!("{}{}", base_url, payload.path().unwrap_or_default());
                         match method {
                             Method::POST => {
-                                println!("{}", url);
                                 let mut req = client.request(method, url).json(&payload);
                                 if let Some(headers) = payload.headers() {
                                     req = req.headers(headers);

@@ -64,15 +64,19 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                         let mut builder = ::reqwest::Client::builder();
                         let mut default_headers = ::reqwest::header::HeaderMap::new();
                         #(
+                            let mut value: ::reqwest::header::HeaderValue = #default_headers_value.parse().unwrap();
+                            value.set_sensitive(true);
                             default_headers.insert(
                                 #default_headers_key,
-                                #default_headers_value.parse().unwrap()
+                                value
                             );
                         )*
                         #(
+                            let mut value: ::reqwest::header::HeaderValue = ::std::env::var(#default_headers_env_value).unwrap().parse().unwrap();
+                            value.set_sensitive(true);
                             default_headers.insert(
                                 #default_headers_env_key,
-                                ::std::env::var(#default_headers_env_value).unwrap().parse().unwrap()
+                                value
                             );
                         )*
                         builder.default_headers(default_headers).build().unwrap()
