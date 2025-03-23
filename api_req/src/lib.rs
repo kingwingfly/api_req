@@ -6,6 +6,4 @@ pub mod error;
 mod payload;
 
 pub use payload::{ApiCaller, Payload, Request};
-#[cfg(feature = "cookies")]
-pub use reqwest::cookie;
 pub use reqwest::{Client, header};
