@@ -71,7 +71,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
         quote! { None }
     } else {
         quote! {
-            let mut headers = ::reqwest::header::HeaderMap::new();
+            let mut headers = ::api_req::header::HeaderMap::new();
             #(
                 headers.insert(#headers_key, #headers_value.parse().unwrap());
             )*
@@ -83,7 +83,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
         impl #impl_generics ::api_req::Payload for #name #ty_generics #where_clause {
             const METHOD: &'static str = #method;
 
-            fn headers(&self) -> Option<::reqwest::header::HeaderMap> {
+            fn headers(&self) -> Option<::api_req::header::HeaderMap> {
                 #headers
             }
 

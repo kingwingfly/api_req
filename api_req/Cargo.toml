@@ -21,3 +21,7 @@ tracing = "0.1.41"
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7.0" }
 pin-project = "1.1.10"
+
+[features]
+default = ["cookies"]
+cookies = ["reqwest/cookies"]

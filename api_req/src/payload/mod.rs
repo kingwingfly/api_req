@@ -1,11 +1,11 @@
 //! Payload
 
 use std::{
-    error::Error,
     pin::Pin,
     task::{Context, Poll},
 };
 
+use super::error::ApiErr;
 pub use api_req_derive::{ApiCaller, Payload};
 use pin_project::pin_project;
 use reqwest::{Client, Method, header::HeaderMap};
@@ -122,16 +122,7 @@ where
     client: Client,
     base_url: String,
     payload: Option<P>,
-    future: Option<
-        Pin<
-            Box<
-                dyn Future<Output = Result<O, Box<dyn Error + Send + Sync + 'static>>>
-                    + Send
-                    + Sync
-                    + 'static,
-            >,
-        >,
-    >,
+    future: Option<Pin<Box<dyn Future<Output = Result<O, ApiErr>> + Send + Sync + 'static>>>,
 }
 
 impl<P, O> Request<P, O>
@@ -155,7 +146,7 @@ where
     P: Payload,
     O: DeserializeOwned + Send + Sync + 'static,
 {
-    type Output = Result<O, Box<dyn Error + Send + Sync + 'static>>;
+    type Output = Result<O, ApiErr>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -174,7 +165,10 @@ where
                                     req = req.headers(headers);
                                 }
                                 let resp = req.send().await?;
-                                resp.json::<O>().await.map_err(Into::into)
+                                let text = resp.text().await?;
+                                let output =
+                                    serde_json::from_str(&text).map_err(|_| ApiErr::Serde(text))?;
+                                Ok::<_, ApiErr>(output)
                             }
                             Method::GET => {
                                 let query = serde_urlencoded::to_string(&payload)
@@ -187,12 +181,15 @@ where
                                     req = req.headers(headers);
                                 }
                                 let resp = req.send().await?;
-                                resp.json::<O>().await.map_err(Into::into)
+                                let text = resp.text().await?;
+                                let output =
+                                    serde_json::from_str(&text).map_err(|_| ApiErr::Serde(text))?;
+                                Ok::<_, ApiErr>(output)
                             }
-                            _ => Err(format!("Unsupported method: {}", P::METHOD).into()),
+                            _ => Err(ApiErr::Other(format!("Unsupported method: {}", P::METHOD))),
                         }
                     }
-                    Err(_) => Err(format!("Invalid method: {}", P::METHOD).into()),
+                    Err(_) => Err(ApiErr::Other(format!("Invalid method: {}", P::METHOD))),
                 }
             });
             *this.future = Some(future);

@@ -59,12 +59,12 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
             const BASE_URL: &'static str = #base_url;
 
             /// return a client with default headers
-            fn client() -> ::reqwest::Client {
-                static CLIENT: ::std::sync::LazyLock<::reqwest::Client> = ::std::sync::LazyLock::new(|| {
-                        let mut builder = ::reqwest::Client::builder();
-                        let mut default_headers = ::reqwest::header::HeaderMap::new();
+            fn client() -> ::api_req::Client {
+                static CLIENT: ::std::sync::LazyLock<::api_req::Client> = ::std::sync::LazyLock::new(|| {
+                        let mut builder = ::api_req::Client::builder();
+                        let mut default_headers = ::api_req::header::HeaderMap::new();
                         #(
-                            let mut value: ::reqwest::header::HeaderValue = #default_headers_value.parse().unwrap();
+                            let mut value: ::api_req::header::HeaderValue = #default_headers_value.parse().unwrap();
                             value.set_sensitive(true);
                             default_headers.insert(
                                 #default_headers_key,
@@ -72,7 +72,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                             );
                         )*
                         #(
-                            let mut value: ::reqwest::header::HeaderValue = ::std::env::var(#default_headers_env_value).unwrap().parse().unwrap();
+                            let mut value: ::api_req::header::HeaderValue = ::std::env::var(#default_headers_env_value).unwrap().parse().unwrap();
                             value.set_sensitive(true);
                             default_headers.insert(
                                 #default_headers_env_key,
