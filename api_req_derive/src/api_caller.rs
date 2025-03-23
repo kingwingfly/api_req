@@ -71,9 +71,9 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
             const BASE_URL: &'static str = #base_url;
 
             /// return a client with default headers
-            fn client() -> ::api_req::Client {
-                static CLIENT: ::std::sync::LazyLock<::api_req::Client> = ::std::sync::LazyLock::new(|| {
-                        let mut builder = ::api_req::Client::builder();
+            fn client() -> ::api_req::__reqwest_Client {
+                static CLIENT: ::std::sync::LazyLock<::api_req::__reqwest_Client> = ::std::sync::LazyLock::new(|| {
+                        let mut builder = ::api_req::__reqwest_Client::builder();
                         #redirct
                         let mut default_headers = ::api_req::header::HeaderMap::new();
                         #(

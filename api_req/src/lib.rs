@@ -6,7 +6,9 @@ pub mod error;
 mod payload;
 
 pub use payload::{ApiCaller, Payload, Request};
-pub use reqwest::{Client, Method, RequestBuilder, header, redirect::Policy as RedirectPolicy};
+#[doc(hidden)]
+pub use reqwest::Client as __reqwest_Client;
+pub use reqwest::{Method, RequestBuilder, header, redirect::Policy as RedirectPolicy};
 #[doc(hidden)]
 pub use serde as __serde;
 #[doc(hidden)]
