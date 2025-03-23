@@ -29,6 +29,7 @@ use serde::{Serialize, Deserialize};
     path = "/payments/{customer_id}",
     method = Method::POST,
     headers = ((header::AUTHORIZATION, "Bearer token {bearer_token}"),),
+    req = form,  // use `form` to set body format instead of the default `json`
     before_deserialize = |text: String | text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),
     deserialize = serde_urlencoded::from_str,
 )]
