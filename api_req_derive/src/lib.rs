@@ -13,16 +13,19 @@ use proc_macro::TokenStream;
 /// ```
 /// use api_req_derive::Payload;
 /// use serde::Serialize;
+/// use reqwest::Method;
 ///
 /// #[derive(Payload, Serialize)]
 /// #[payload(
-///     path = "/api/v1/{id}",
-///     method = "GET",
-///     headers = (("k1", "v1"),)
+///     path = "/api/v1/{id}",  // format `id` from struct field
+///     method = Method::GET,
+///     headers = (("k1", "v1"), ("k2", "{x}")) // format `x` from struct field
 /// )]
 /// struct Test {
 ///     #[serde(skip_serializing)]
 ///     id: u32,
+///     #[serde(skip_serializing)]
+///     x: String,
 /// }
 /// ```
 #[proc_macro_derive(Payload, attributes(payload))]

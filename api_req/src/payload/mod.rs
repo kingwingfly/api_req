@@ -1,38 +1,44 @@
 //! Payload
 
+use crate::error::{ApiErr, ApiResult};
+pub use api_req_derive::{ApiCaller, Payload};
+use pin_project::pin_project;
+use reqwest::{Client, Method, RequestBuilder, Url, header::HeaderMap, redirect::Policy};
+use serde::{Serialize, de::DeserializeOwned};
+use std::sync::LazyLock;
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
 
-use super::error::ApiErr;
-pub use api_req_derive::{ApiCaller, Payload};
-use pin_project::pin_project;
-use reqwest::{Client, Method, header::HeaderMap, redirect::Policy};
-use serde::{Serialize, de::DeserializeOwned};
-use std::sync::LazyLock;
-
 /// Define a API that can be called
 ///
 /// # Example
 /// ```
-/// use api_req::Payload;
+/// use api_req::{Payload, Method};
 /// use serde::Serialize;
 ///
 /// #[derive(Debug, Clone, Serialize, Payload)]
 /// #[payload(
-///     path = "/api/v1/{payment_id}",
-///     method = "GET",
-///     headers = (("k1", "v1"),)   // headers added to the default headers
+///     path = "/api/v1/{payment_id}",  // format `payment_id` from struct field
+///     method = Method::GET,
+///     // headers added to the default headers
+///     headers = (("k1", "v1"), ("header", "{header}")),  // format `header` from struct field
+///     req = query,    // `RequestBuilder::query` will be used; Can also be `json`, `form` as you need
+///     // strip the prefix before deserialize
+///     before_deserialize = |text: String| text.strip_prefix("&&&START&&&").map(ToOwned::to_owned).ok_or(text),
+///     deserialize = serde_urlencoded::from_str    // use `serde_urlencoded` to deserialize the response body
 /// )]
 /// pub struct CompletePayload {
 ///     #[serde(skip_serializing)]
 ///     payment_id: String,
+///     #[serde(skip_serializing)]
+///     header: String,
 /// }
 /// ```
 pub trait Payload: Send + Sync + Serialize + 'static {
-    /// The method of the API
-    const METHOD: &'static str;
+    /// The method of the API; GET or POST;
+    const METHOD: Method;
 
     /// The headers for the API.
     fn headers(&self) -> Option<HeaderMap> {
@@ -42,6 +48,28 @@ pub trait Payload: Send + Sync + Serialize + 'static {
     /// The path for the API.
     fn path(&self) -> Option<String> {
         None
+    }
+
+    /// add options to RequestBuilder: headers, body, query...
+    fn req_option(&self, mut req: RequestBuilder) -> RequestBuilder {
+        if let Some(headers) = self.headers() {
+            req = req.headers(headers);
+        }
+        match Self::METHOD {
+            Method::GET => req.query(self),
+            Method::POST => req.json(self),
+            _ => unimplemented!(),
+        }
+    }
+
+    /// befor deserialize response's body
+    fn before_deserialize() -> Option<fn(String) -> ApiResult<String>> {
+        None
+    }
+
+    /// deserialize
+    fn deserialize<O: DeserializeOwned>(input: String) -> ApiResult<O> {
+        serde_json::from_str(&input).map_err(|_| ApiErr::UnDeserializeable(input))
     }
 }
 
@@ -61,6 +89,12 @@ pub trait Payload: Send + Sync + Serialize + 'static {
 /// )]
 /// struct ExampleApi;
 /// ```
+///
+/// Provide the root URL in `protocol://domain[:port]` format (e.g., `https://example.com`) as base_url.
+///
+/// Valid: `https://api.service.com`, `http://localhost:8080`.
+///
+/// Invalid: `https://example.com/api` will be treated as `https://example.com`.
 pub trait ApiCaller {
     /// The baseurl of the API
     const BASE_URL: &'static str;
@@ -88,14 +122,17 @@ pub trait ApiCaller {
 ///
 /// # Example
 /// ```no_run
-/// use api_req::{Payload, ApiCaller, ApiCaller as _};
+/// use api_req::{Payload, ApiCaller, Method, ApiCaller as _};
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Default, Clone, Serialize, Payload)]
-/// #[payload(path = "/payments/{customer_id}", method = "POST")]
+/// #[payload(
+///     path = "/payments/{customer_id}",   // customer_id from struct field
+///     method = Method::POST,
+/// )]
 /// pub struct ExamplePayload {
 ///     #[serde(skip_serializing)]
-///     customer_id: String,    // this field is passed as a path parameter
+///     customer_id: String,
 ///     amount: usize,
 /// }
 ///
@@ -157,42 +194,20 @@ where
             let client = this.client.clone();
             let base_url = this.base_url.drain(..).collect::<String>();
             let future = Box::pin(async move {
-                match P::METHOD.try_into() {
-                    Ok(method) => {
-                        let mut url = format!("{}{}", base_url, payload.path().unwrap_or_default());
-                        match method {
-                            Method::POST => {
-                                let mut req = client.request(method, url).json(&payload);
-                                if let Some(headers) = payload.headers() {
-                                    req = req.headers(headers);
-                                }
-                                let resp = req.send().await?;
-                                let text = resp.text().await?;
-                                let output = serde_json::from_str(&text)
-                                    .map_err(|_| ApiErr::NotJson(text))?;
-                                Ok::<_, ApiErr>(output)
-                            }
-                            Method::GET => {
-                                let query = serde_urlencoded::to_string(&payload)
-                                    .expect("Payload should be urlencode-serializable");
-                                if !query.is_empty() {
-                                    url.push_str(&format!("?{}", query));
-                                }
-                                let mut req = client.request(method, url);
-                                if let Some(headers) = payload.headers() {
-                                    req = req.headers(headers);
-                                }
-                                let resp = req.send().await?;
-                                let text = resp.text().await?;
-                                let output = serde_json::from_str(&text)
-                                    .map_err(|_| ApiErr::NotJson(text))?;
-                                Ok::<_, ApiErr>(output)
-                            }
-                            _ => Err(ApiErr::Other(format!("Unsupported method: {}", P::METHOD))),
-                        }
-                    }
-                    Err(_) => Err(ApiErr::Other(format!("Invalid method: {}", P::METHOD))),
+                let mut req = client.request(
+                    P::METHOD,
+                    Url::parse(&base_url)
+                        .unwrap()
+                        .join(&payload.path().unwrap_or_default())
+                        .unwrap(),
+                );
+                req = payload.req_option(req);
+                let resp = req.send().await?;
+                let mut body = resp.text().await?;
+                if let Some(pre_op) = P::before_deserialize() {
+                    body = pre_op(body)?;
                 }
+                P::deserialize(body)
             });
             *this.future = Some(future);
         }
@@ -214,7 +229,7 @@ mod tests {
     }
 
     impl Payload for TestPayload {
-        const METHOD: &'static str = "POST";
+        const METHOD: Method = Method::POST;
 
         fn path(&self) -> Option<String> {
             Some("/payments".to_string())

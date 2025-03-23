@@ -1,5 +1,5 @@
 [workspace]
-members = ["api_req", "api_req_derive"]
+members = ["api_req", "api_req_derive", "test"]
 resolver = "2"
 
 [workspace.package]
