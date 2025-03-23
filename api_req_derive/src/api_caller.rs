@@ -12,6 +12,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let mut default_headers_value: Vec<Expr> = vec![];
     let mut default_headers_env_key: Vec<Expr> = vec![];
     let mut default_headers_env_value: Vec<Expr> = vec![];
+    let mut redirect: Option<Expr> = None;
 
     if let Some(attr) = input.attrs.iter().find(|&attr| attr.path().is_ident("api")) {
         attr.parse_nested_meta(|meta| {
@@ -40,6 +41,10 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                         default_headers_env_value.push(kv.next().unwrap());
                     }
                 }
+                item if item.is_ident("redirect") => {
+                    let value = meta.value()?;
+                    redirect = value.parse().ok();
+                }
                 item => Err(meta.error(format!(
                     "unsupported attribute: {}",
                     item.get_ident().unwrap()
@@ -54,6 +59,13 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
         panic!("base_url must be provided");
     }
 
+    let redirct = match redirect {
+        Some(expr) => quote! {
+            builder = builder.redirect(#expr);
+        },
+        None => quote! {},
+    };
+
     let expanded = quote! {
         impl #impl_generics::api_req::ApiCaller for #name #ty_generics #where_clause {
             const BASE_URL: &'static str = #base_url;
@@ -62,6 +74,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
             fn client() -> ::api_req::Client {
                 static CLIENT: ::std::sync::LazyLock<::api_req::Client> = ::std::sync::LazyLock::new(|| {
                         let mut builder = ::api_req::Client::builder();
+                        #redirct
                         let mut default_headers = ::api_req::header::HeaderMap::new();
                         #(
                             let mut value: ::api_req::header::HeaderValue = #default_headers_value.parse().unwrap();

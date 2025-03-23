@@ -6,4 +6,4 @@ pub mod error;
 mod payload;
 
 pub use payload::{ApiCaller, Payload, Request};
-pub use reqwest::{Client, header};
+pub use reqwest::{Client, header, redirect::Policy as RedirectPolicy};

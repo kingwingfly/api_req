@@ -9,7 +9,7 @@ pub enum ApiErr {
     /// Reqwest error
     Reqwest(reqwest::Error),
     /// Serde error; Contains the returned body
-    Serde(String),
+    NotJson(String),
     /// Other error
     Other(String),
 }
@@ -24,7 +24,7 @@ impl fmt::Display for ApiErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Reqwest(e) => write!(f, "Reqwest error: {}", e),
-            Self::Serde(e) => write!(f, "Serde error: {}", e),
+            Self::NotJson(e) => write!(f, "Serde error: {}", e),
             ApiErr::Other(e) => write!(f, "Other error: {}", e),
         }
     }

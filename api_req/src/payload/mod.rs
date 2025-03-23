@@ -8,7 +8,7 @@ use std::{
 use super::error::ApiErr;
 pub use api_req_derive::{ApiCaller, Payload};
 use pin_project::pin_project;
-use reqwest::{Client, Method, header::HeaderMap};
+use reqwest::{Client, Method, header::HeaderMap, redirect::Policy};
 use serde::{Serialize, de::DeserializeOwned};
 use std::sync::LazyLock;
 
@@ -49,14 +49,15 @@ pub trait Payload: Send + Sync + Serialize + 'static {
 ///
 /// # Example
 /// ```
-/// use api_req::ApiCaller;
+/// use api_req::{ApiCaller, RedirectPolicy};
 /// use reqwest::header;
 ///
 /// #[derive(ApiCaller)]
 /// #[api(
 ///     base_url = "http://example.com",
 ///     default_headers = (("k1", "v1"), (header::ORIGIN, "v2")),
-///     default_headers_env = (("k3", "API_KEY"),)  // header value from env; `,` is essential
+///     default_headers_env = (("k3", "API_KEY"),),  // header value from env; `,` is essential in tuple
+///     redirect = RedirectPolicy::none()
 /// )]
 /// struct ExampleApi;
 /// ```
@@ -75,7 +76,8 @@ pub trait ApiCaller {
 
     /// return a client
     fn client() -> Client {
-        static CLIENT: LazyLock<Client> = LazyLock::new(Client::new);
+        static CLIENT: LazyLock<Client> =
+            LazyLock::new(|| Client::builder().redirect(Policy::none()).build().unwrap());
         CLIENT.clone()
     }
 }
@@ -166,8 +168,8 @@ where
                                 }
                                 let resp = req.send().await?;
                                 let text = resp.text().await?;
-                                let output =
-                                    serde_json::from_str(&text).map_err(|_| ApiErr::Serde(text))?;
+                                let output = serde_json::from_str(&text)
+                                    .map_err(|_| ApiErr::NotJson(text))?;
                                 Ok::<_, ApiErr>(output)
                             }
                             Method::GET => {
@@ -182,8 +184,8 @@ where
                                 }
                                 let resp = req.send().await?;
                                 let text = resp.text().await?;
-                                let output =
-                                    serde_json::from_str(&text).map_err(|_| ApiErr::Serde(text))?;
+                                let output = serde_json::from_str(&text)
+                                    .map_err(|_| ApiErr::NotJson(text))?;
                                 Ok::<_, ApiErr>(output)
                             }
                             _ => Err(ApiErr::Other(format!("Unsupported method: {}", P::METHOD))),
