@@ -20,6 +20,10 @@ pub struct ExamplePayload {
 You can not only define the path, method, payload-format, pre-deserialize-action, and deserialize method,
 but also can format the path, headervalue with fields in the payload struct.
 
+# feature
+
+- `stream` - support stream response: `RespStream`
+
 # Example
 ```rust no_run
 use api_req::{header, Payload, RedirectPolicy, ApiCaller, Method, ApiCaller as _};

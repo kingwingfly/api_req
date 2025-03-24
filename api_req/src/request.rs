@@ -5,6 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
+#[cfg(feature = "stream")]
 use futures_util::{Stream, TryStreamExt as _};
 use pin_project::pin_project;
 use reqwest::{Client, Url};
@@ -115,6 +116,7 @@ where
 /// `Bytes` response stream name alias
 ///
 /// `api_req` re-export `StreamExt` from `futures-util`.
+#[cfg(feature = "stream")]
 pub type RespStream = Box<dyn Stream<Item = Result<bytes::Bytes, ApiErr>> + Send>;
 
 #[cfg(feature = "stream")]
