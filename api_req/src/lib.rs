@@ -2,10 +2,18 @@
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
+pub mod api_caller;
 pub mod error;
-mod payload;
+pub mod payload;
+pub mod request;
 
-pub use payload::{ApiCaller, Payload, Request};
+pub use api_caller::ApiCaller;
+#[cfg(feature = "stream")]
+pub use futures_util::StreamExt;
+pub use payload::{ApiCaller, Payload};
+pub use request::Request;
+#[cfg(feature = "stream")]
+pub use request::RespStream;
 #[doc(hidden)]
 pub use reqwest::Client as __reqwest_Client;
 pub use reqwest::{Method, RequestBuilder, header, redirect::Policy as RedirectPolicy};

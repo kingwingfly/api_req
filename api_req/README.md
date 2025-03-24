@@ -62,8 +62,11 @@ let _resp: ExampleResponse = ExampleApi::request(payload).await.unwrap();
 // this will send a POST request to http://example.com/payments/{customer_id}
 // with json `{"amount": 0}`
 ```
-For POST request, the payload will be serialized as json body.
 
-For GET request, the payload will be serialized as query parameters (urlencoded).
+For POST request, the payload will be serialized as json body by default.
+
+For GET request, the payload will be serialized as query parameters (urlencoded) by default.
+
+You can set the payload format by `req` attribute in the `#[payload(...)]` attribute.
 
 For other methods, not supported yet.

@@ -1,6 +1,6 @@
 [package]
 name = "api_req"
-version = "0.2.2"
+version = "0.2.3"
 edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req"
@@ -21,5 +21,9 @@ tracing = "0.1.41"
 serde_json = { version = "1.0" }
 serde_urlencoded = { version = "0.7.0" }
 pin-project = "1.1.10"
+futures-util = { version = "0.3.31", optional = true }
+bytes = { version = "1.10.1", optional = true }
 
 [features]
+default = ["stream"]
+stream = ["dep:futures-util", "dep:bytes", "reqwest/stream"]
