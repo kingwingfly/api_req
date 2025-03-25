@@ -42,6 +42,15 @@ pub trait ApiCaller {
         Request::new(payload, Self::BASE_URL.to_string(), Self::client())
     }
 
+    /// return a stream future that can be awaited
+    #[cfg(feature = "stream")]
+    fn stream<P>(payload: P) -> Request<P, crate::RespStream, ((),)>
+    where
+        P: Payload,
+    {
+        Request::new(payload, Self::BASE_URL.to_string(), Self::client())
+    }
+
     /// return a client
     fn client() -> Client {
         static CLIENT: LazyLock<Client> =
