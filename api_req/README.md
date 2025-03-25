@@ -2,8 +2,6 @@ Make API calls more easier!
 
 In `v0.3`, the attribute in derive macros is changed to `#[api_req(...)]` instead of `#[api(...)]` and `#[payload(...)]`.
 
-Notice: I found `Client` is not re-used, I'll fix it in `v0.4`.
-
 # Advantage
 For example:
 ```rust ignore

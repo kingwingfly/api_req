@@ -24,11 +24,11 @@ use crate::{Payload, Request};
 /// struct ExampleApi;
 /// ```
 ///
-/// Provide the root URL in `protocol://domain[:port]` format (e.g., `https://example.com`) as base_url.
+/// Provide the root URL in `protocol://domain[:port]/api/` format (e.g., `https://example.com/api/`) as base_url.
 ///
-/// Valid: `https://api.service.com`, `http://localhost:8080`.
+/// Valid: `https://api.service.com`, `http://localhost:8080/api/`.
 ///
-/// Invalid: `https://example.com/api` will be treated as `https://example.com`.
+/// Invalid: `https://example.com/api` will be treated as `https://example.com`, use `https://example.com/api/` instead.
 pub trait ApiCaller {
     /// The baseurl of the API
     const BASE_URL: &'static str;
