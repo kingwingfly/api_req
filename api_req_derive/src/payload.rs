@@ -9,7 +9,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let mut path: Expr = syn::parse_str("\"\"").unwrap();
-    let mut method: Expr = syn::parse_str("\"::api_req::Method::GET\"").unwrap();
+    let mut method: Expr = syn::parse_str("::api_req::Method::GET").unwrap();
     let mut headers_key: Vec<Expr> = vec![];
     let mut headers_value: Vec<Expr> = vec![];
     let mut req: Ident = syn::parse_str("json").unwrap();
