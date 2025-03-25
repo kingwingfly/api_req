@@ -15,7 +15,7 @@ use crate::{Payload, Request};
 /// use reqwest::header;
 ///
 /// #[derive(ApiCaller)]
-/// #[api(
+/// #[api_req(
 ///     base_url = "http://example.com",
 ///     default_headers = (("k1", "v1"), (header::ORIGIN, "v2")),
 ///     default_headers_env = (("k3", "API_KEY"),),  // header value from env; `,` is essential in tuple

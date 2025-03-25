@@ -1,12 +1,14 @@
 Make API calls more easier!
 
+In `v0.3`, the attribute in derive macros is changed to `#[api_req(...)]` instead of `#[api(...)]` and `#[payload(...)]`.
+
 # Advantage
 For example:
 ```rust ignore
 use api_req::Method;
 
 #[derive(Debug, Default, Clone, Serialize, Payload)]
-#[payload(
+#[api_req(
     path = "/payments/{customer_id}", // format from struct fields
     method = Method::POST,
     ...
@@ -29,7 +31,7 @@ but also can format the path, headervalue with fields in the payload struct.
 use api_req::{header, Payload, RedirectPolicy, ApiCaller, Method, ApiCaller as _};
 use serde::{Serialize, Deserialize};
 #[derive(Debug, Default, Clone, Serialize, Payload)]
-#[payload(
+#[api_req(
     path = "/payments/{customer_id}",
     method = Method::POST,
     headers = ((header::AUTHORIZATION, "Bearer token {bearer_token}"),),
@@ -51,7 +53,7 @@ struct ExampleResponse {
 }
 
 #[derive(ApiCaller)]
-#[api(
+#[api_req(
     base_url = "http://example.com",
     default_headers = ((header::USER_AGENT, "..."),),
     default_headers_env = (("api-key", "API_KEY"),),    // get from env
@@ -71,6 +73,6 @@ For POST request, the payload will be serialized as json body by default.
 
 For GET request, the payload will be serialized as query parameters (urlencoded) by default.
 
-You can set the payload format by `req` attribute in the `#[payload(...)]` attribute.
+You can set the payload format by `req` attribute in the `#[api_req(...)]` attribute.
 
 For other methods, not supported yet.

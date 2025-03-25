@@ -23,7 +23,7 @@ use crate::{Payload, error::ApiErr};
 /// use serde::{Serialize, Deserialize};
 ///
 /// #[derive(Debug, Default, Clone, Serialize, Payload)]
-/// #[payload(
+/// #[api_req(
 ///     path = "/payments/{customer_id}",   // customer_id from struct field
 ///     method = Method::POST,
 /// )]
@@ -39,7 +39,7 @@ use crate::{Payload, error::ApiErr};
 /// }
 ///
 /// #[derive(ApiCaller)]
-/// #[api(base_url = "http://example.com")]
+/// #[api_req(base_url = "http://example.com")]
 /// struct ExampleApi;
 /// # async {
 /// let payload = ExamplePayload::default();

@@ -14,7 +14,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let mut default_headers_env_value: Vec<Expr> = vec![];
     let mut redirect: Option<Expr> = None;
 
-    if let Some(attr) = input.attrs.iter().find(|&attr| attr.path().is_ident("api")) {
+    if let Some(attr) = input.attrs.iter().find(|&attr| attr.path().is_ident("api_req")) {
         attr.parse_nested_meta(|meta| {
             match &meta.path {
                 item if item.is_ident("base_url") => {

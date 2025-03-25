@@ -2,7 +2,7 @@ use api_req::{ApiCaller, Method, Payload, RedirectPolicy, header};
 use serde::Serialize;
 
 #[derive(Debug, ApiCaller)]
-#[api(
+#[api_req(
     base_url = "https://api.micoapi.com",
     default_headers = ((header::USER_AGENT, "Mozilla/5.0"),),
     redirect = RedirectPolicy::none(),
@@ -10,7 +10,7 @@ use serde::Serialize;
 pub struct Api {}
 
 #[derive(Debug, Serialize, Payload)]
-#[payload(
+#[api_req(
     path = "/v2/auth/{id}",
     method = Method::POST,
     headers = ((header::AUTHORIZATION, "{password}"),),
@@ -24,3 +24,6 @@ pub struct LoginPayload {
     pub email: String,
     pub password: String,
 }
+
+#[test]
+fn test() {}

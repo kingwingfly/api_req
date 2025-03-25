@@ -20,7 +20,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
     if let Some(attr) = input
         .attrs
         .iter()
-        .find(|&attr| attr.path().is_ident("payload"))
+        .find(|&attr| attr.path().is_ident("api_req"))
     {
         attr.parse_nested_meta(|meta| {
             match &meta.path {

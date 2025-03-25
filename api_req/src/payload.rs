@@ -13,7 +13,7 @@ use serde::{Serialize, de::DeserializeOwned};
 /// use serde::Serialize;
 ///
 /// #[derive(Debug, Clone, Serialize, Payload)]
-/// #[payload(
+/// #[api_req(
 ///     path = "/api/v1/{payment_id}",  // format `payment_id` from struct field
 ///     method = Method::GET,
 ///     // headers added to the default headers
