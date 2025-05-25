@@ -74,5 +74,3 @@ For POST request, the payload will be serialized as json body by default.
 For GET request, the payload will be serialized as query parameters (urlencoded) by default.
 
 You can set the payload format by `req` attribute in the `#[api_req(...)]` attribute.
-
-For other methods, not supported yet.

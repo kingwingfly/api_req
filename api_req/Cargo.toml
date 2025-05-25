@@ -1,6 +1,6 @@
 [package]
 name = "api_req"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req"
@@ -13,16 +13,16 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 api_req_derive = { path = "../api_req_derive", version = "0.3.0" }
-dotenv = "0.15.0"
-reqwest = { version = "0.12.15", features = ["json"] }
-serde = { version = "1.0.219", features = ["derive"] }
-tokio = { version = "1.44.1", features = ["macros", "rt-multi-thread"] }
-tracing = "0.1.41"
-serde_json = { version = "1.0" }
-serde_urlencoded = { version = "0.7.0" }
-pin-project = "1.1.10"
-futures-util = { version = "0.3.31", optional = true }
-bytes = { version = "1.10.1", optional = true }
+dotenv = "0.15"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1"
+serde_json = { version = "1" }
+serde_urlencoded = { version = "0.7" }
+pin-project = "1.1"
+futures-util = { version = "0.3", optional = true }
+bytes = { version = "1.10", optional = true }
 
 [features]
 default = []
