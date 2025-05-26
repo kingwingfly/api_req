@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "api_req"
-version = "0.3.4"
+version = "0.3.5"
 dependencies = [
  "api_req_derive",
  "bytes",
@@ -39,7 +39,6 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
- "tokio",
  "tracing",
 ]
 
@@ -1188,19 +1187,7 @@ dependencies = [
  "mio",
  "pin-project-lite",
  "socket2",
- "tokio-macros",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "tokio-macros"
-version = "2.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e06d43f1345a3bcd39f6a56dbb7dcab2ba47e68e8ac134855e7e2bdbaf8cab8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
