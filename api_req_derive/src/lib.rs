@@ -28,6 +28,10 @@ use proc_macro::TokenStream;
 ///     x: String,
 /// }
 /// ```
+///
+/// If `method` is set to POST, one should set `req` to `json` or `form` as needed manually.
+///
+/// The default derive code is `GET` method with `query` request.
 #[proc_macro_derive(Payload, attributes(api_req))]
 pub fn derive_payload(input: TokenStream) -> TokenStream {
     payload::derive_payload(input)
