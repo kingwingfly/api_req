@@ -1,6 +1,6 @@
 [package]
 name = "api_req_derive"
-version = "0.3.3"
+version = "0.4.0-alpha.1"
 edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req_derive"
@@ -20,7 +20,11 @@ quote = "1.0"
 regex = { version = "1.11" }
 
 [dev-dependencies]
-api_req = { path = "../api_req", version = "0.3.0" }
+api_req = { path = "../api_req", version = "0.4.0-alpha" }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.12", features = [] }
 serde_urlencoded = { version = "0.7" }
+
+[features]
+default = []
+cookies = ["api_req/cookies"]

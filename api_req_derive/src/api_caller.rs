@@ -14,7 +14,11 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let mut default_headers_env_value: Vec<Expr> = vec![];
     let mut redirect: Option<Expr> = None;
 
-    if let Some(attr) = input.attrs.iter().find(|&attr| attr.path().is_ident("api_req")) {
+    if let Some(attr) = input
+        .attrs
+        .iter()
+        .find(|&attr| attr.path().is_ident("api_req"))
+    {
         attr.parse_nested_meta(|meta| {
             match &meta.path {
                 item if item.is_ident("base_url") => {
@@ -66,6 +70,13 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
         None => quote! {},
     };
 
+    let cookie = match cfg!(feature = "cookies") {
+        true => quote! {
+            builder = builder.cookie_provider(::api_req::api_caller::COOKIE_JAR.clone());
+        },
+        false => quote! {},
+    };
+
     let expanded = quote! {
         impl #impl_generics::api_req::ApiCaller for #name #ty_generics #where_clause {
             const BASE_URL: &'static str = #base_url;
@@ -75,6 +86,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                 static CLIENT: ::std::sync::LazyLock<::api_req::__reqwest_Client> = ::std::sync::LazyLock::new(|| {
                         let mut builder = ::api_req::__reqwest_Client::builder();
                         #redirct
+                        #cookie
                         let mut default_headers = ::api_req::header::HeaderMap::new();
                         #(
                             let mut value: ::api_req::header::HeaderValue = #default_headers_value.parse().unwrap();

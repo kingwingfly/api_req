@@ -25,6 +25,7 @@ but also can format the path, headervalue with fields in the payload struct.
 # feature
 
 - `stream` - support stream response: `RespStream`
+- `cookies` - store cookies, which can be retrieved from `COOKIE_JAR`
 
 # Example
 ```rust no_run

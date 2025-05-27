@@ -7,7 +7,7 @@ pub mod error;
 pub mod payload;
 pub mod request;
 
-pub use api_caller::ApiCaller;
+pub use api_caller::{ApiCaller, COOKIE_JAR};
 #[cfg(feature = "stream")]
 pub use futures_util::StreamExt;
 pub use payload::{ApiCaller, Payload};

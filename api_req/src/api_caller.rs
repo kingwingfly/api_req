@@ -7,6 +7,14 @@ use serde::de::DeserializeOwned;
 
 use crate::{Payload, Request};
 
+/// The cookies jar all callers' using.
+///
+/// Different API callers use different base_urls (domains), so a static global cookie jar is more
+/// suitable than many jars for each caller.
+#[cfg(feature = "cookies")]
+pub static COOKIE_JAR: LazyLock<std::sync::Arc<reqwest::cookie::Jar>> =
+    LazyLock::new(|| std::sync::Arc::new(reqwest::cookie::Jar::default()));
+
 /// Define a API caller
 ///
 /// # Example
@@ -30,10 +38,10 @@ use crate::{Payload, Request};
 ///
 /// Invalid: `https://example.com/api` will be treated as `https://example.com`, use `https://example.com/api/` instead.
 pub trait ApiCaller {
-    /// The baseurl of the API
+    /// The baseurl of the API, always the domain
     const BASE_URL: &'static str;
 
-    /// return a request future that can be awaited
+    /// Return a request future that can be awaited
     fn request<P, O>(payload: P) -> Request<P, O, ()>
     where
         P: Payload,
@@ -42,7 +50,7 @@ pub trait ApiCaller {
         Request::new(payload, Self::BASE_URL.to_string(), Self::client())
     }
 
-    /// return a stream future that can be awaited
+    /// Return a stream future that can be awaited
     #[cfg(feature = "stream")]
     fn stream<P>(payload: P) -> Request<P, crate::RespStream, ((),)>
     where
@@ -51,10 +59,14 @@ pub trait ApiCaller {
         Request::new(payload, Self::BASE_URL.to_string(), Self::client())
     }
 
-    /// return a client
+    /// Return a client
     fn client() -> Client {
-        static CLIENT: LazyLock<Client> =
-            LazyLock::new(|| Client::builder().redirect(Policy::none()).build().unwrap());
+        static CLIENT: LazyLock<Client> = LazyLock::new(|| {
+            let builder = Client::builder().redirect(Policy::none());
+            #[cfg(feature = "cookies")]
+            let builder = builder.cookie_provider(COOKIE_JAR.clone());
+            builder.build().unwrap()
+        });
         CLIENT.clone()
     }
 }

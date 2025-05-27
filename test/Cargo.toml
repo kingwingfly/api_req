@@ -1,6 +1,6 @@
 [package]
 name = "test"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 publish = false
 
@@ -10,6 +10,6 @@ path = "macros.rs"
 required-features = []
 
 [dependencies]
-api_req = { path = "../api_req", version = "0.3.0" }
+api_req = { path = "../api_req", version = "0.4.0-alpha" }
 serde = { version = "1.0", features = ["derive"] }
 serde_urlencoded = { version = "0.7.0" }
