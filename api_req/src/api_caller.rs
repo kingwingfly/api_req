@@ -38,7 +38,7 @@ pub static COOKIE_JAR: LazyLock<std::sync::Arc<reqwest::cookie::Jar>> =
 ///
 /// Invalid: `https://example.com/api` will be treated as `https://example.com`, use `https://example.com/api/` instead.
 pub trait ApiCaller {
-    /// The baseurl of the API, always the domain
+    /// The baseurl of the API, mostly the domain
     const BASE_URL: &'static str;
 
     /// Return a request future that can be awaited
