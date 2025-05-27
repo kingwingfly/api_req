@@ -12,7 +12,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
     let mut method: Expr = syn::parse_str("::api_req::Method::GET").unwrap();
     let mut headers_key: Vec<Expr> = vec![];
     let mut headers_value: Vec<Expr> = vec![];
-    let mut req: Ident = syn::parse_str("json").unwrap();
+    let mut req: Ident = syn::parse_str("query").unwrap();
     let mut before_deserialize: Option<Expr> = None;
     let mut deserialize: Option<Expr> = None;
     let re = Regex::new(r"\{(\w+)\}").unwrap();

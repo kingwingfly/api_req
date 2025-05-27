@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "api_req_derive"
-version = "0.4.0-alpha.1"
+version = "0.4.0-alpha.2"
 dependencies = [
  "api_req",
  "quote",
