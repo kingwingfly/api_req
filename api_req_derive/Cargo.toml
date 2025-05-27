@@ -1,6 +1,6 @@
 [package]
 name = "api_req_derive"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req_derive"
