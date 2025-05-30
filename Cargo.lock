@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "api_req"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "api_req_derive",
  "bytes",
@@ -44,7 +44,7 @@ dependencies = [
 
 [[package]]
 name = "api_req_derive"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "api_req",
  "quote",
@@ -1227,7 +1227,7 @@ dependencies = [
 
 [[package]]
 name = "test"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "api_req",
  "serde",
