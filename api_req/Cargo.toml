@@ -24,6 +24,6 @@ futures-util = { version = "0.3", optional = true }
 bytes = { version = "1.10", optional = true }
 
 [features]
-default = ["cookies"]
+default = []
 stream = ["dep:futures-util", "dep:bytes", "reqwest/stream"]
 cookies = ["reqwest/cookies", "api_req_derive/cookies"]
