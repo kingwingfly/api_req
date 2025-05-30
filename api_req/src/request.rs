@@ -50,6 +50,7 @@ use crate::{Payload, error::ApiErr};
 /// ```
 #[allow(clippy::type_complexity)]
 #[pin_project]
+#[must_use = "futures do nothing unless polled"]
 pub struct Request<P, O, M>
 where
     P: Payload,
