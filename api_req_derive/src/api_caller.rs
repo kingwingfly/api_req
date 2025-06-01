@@ -47,7 +47,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                 }
                 item if item.is_ident("redirect") => {
                     let value = meta.value()?;
-                    redirect = value.parse().ok();
+                    redirect = Some(value.parse().unwrap());
                 }
                 item => Err(meta.error(format!(
                     "unsupported attribute: {}",
