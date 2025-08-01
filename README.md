@@ -37,8 +37,8 @@ use serde::{Serialize, Deserialize};
     method = Method::POST,
     headers = ((header::AUTHORIZATION, "Bearer token {bearer_token}"),),
     req = form,  // use `form` to set body format instead of the default `json`
-    before_deserialize = |text: String | text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),
-    deserialize = serde_urlencoded::from_str,
+    before_deserialize = |text: String | text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),   // strip prefix, or original content if failed. `|String| -> Result<String, String>`
+    deserialize = serde_urlencoded::from_str,   // deserialize with serde_urlencoded instead of the default serde_json
 )]
 pub struct ExamplePayload {
     #[serde(skip_serializing)]  // skip this field when serializing payload
@@ -67,11 +67,15 @@ let payload = ExamplePayload::default();
 let _resp: ExampleResponse = ExampleApi::request(payload).await.unwrap();
 # };
 // this will send a POST request to http://example.com/payments/{customer_id}
-// with json `{"amount": 0}`
+// with form `{"amount": 0}`
 ```
 
 For POST request, the payload will be serialized as json body by default.
 
 For GET request, the payload will be serialized as query parameters (urlencoded) by default.
 
-You can set the payload format by `req` attribute in the `#[api_req(...)]` attribute.
+You can set the payload format by `req` attribute in the `#[api_req(...)]` attribute, avaliable values are:
+- json
+- query
+- form
+One should ensure it `req` matches its `Method`.
