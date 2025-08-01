@@ -20,7 +20,7 @@ pub use request::RespStream;
 pub use reqwest::Client as __reqwest_Client;
 #[cfg(feature = "cookies")]
 pub use reqwest::cookie::CookieStore;
-pub use reqwest::{Method, RequestBuilder, header, redirect::Policy as RedirectPolicy};
+pub use reqwest::{Body, Method, RequestBuilder, header, redirect::Policy as RedirectPolicy};
 #[doc(hidden)]
 pub use serde as __serde;
 #[doc(hidden)]

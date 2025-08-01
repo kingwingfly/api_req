@@ -78,5 +78,6 @@ You can set the payload format by `req` attribute in the `#[api_req(...)]` attri
 - json
 - query
 - form
+- body (payload: `Into<Body>`)
 
 One should ensure it `req` matches its `Method`.
