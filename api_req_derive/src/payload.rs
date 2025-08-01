@@ -35,11 +35,11 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
                     let p = format_args
                         .into_iter()
                         .fold(format!(r#""{}""#, p.value()), |acc, x| {
-                            format!("{acc}, {x}=self.{x}", acc = acc, x = x)
+                            format!("{acc}, {x}=self.{x}")
                         });
-                    let p = format!("format!({})", p);
+                    let p = format!("format!({p})");
                     path = syn::parse_str(&p)
-                        .map_err(|_| format!("cannot convert: {}", p))
+                        .map_err(|_| format!("cannot convert: {p}"))
                         .unwrap();
                 }
                 item if item.is_ident("method") => {
@@ -63,11 +63,11 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
                             let v = format_args
                                 .into_iter()
                                 .fold(format!(r#""{}""#, v.value()), |acc, x| {
-                                    format!("{acc}, {x}=self.{x}", acc = acc, x = x)
+                                    format!("{acc}, {x}=self.{x}")
                                 });
-                            let v = format!("format!({})", v);
+                            let v = format!("format!({v})");
                             value = syn::parse_str(&v)
-                                .map_err(|_| format!("cannot convert: {}", v))
+                                .map_err(|_| format!("cannot convert: {v}"))
                                 .unwrap();
                         }
                         headers_value.push(value);

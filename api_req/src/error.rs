@@ -23,9 +23,9 @@ impl From<reqwest::Error> for ApiErr {
 impl fmt::Display for ApiErr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Reqwest(e) => write!(f, "Reqwest error: {}", e),
-            Self::UnDeserializeable(e) => write!(f, "Serde error: {}", e),
-            ApiErr::Other(e) => write!(f, "Other error: {}", e),
+            Self::Reqwest(e) => write!(f, "Reqwest error: {e}"),
+            Self::UnDeserializeable(e) => write!(f, "Serde error: {e}"),
+            ApiErr::Other(e) => write!(f, "Other error: {e}"),
         }
     }
 }
