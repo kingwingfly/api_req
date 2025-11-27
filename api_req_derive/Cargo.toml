@@ -26,4 +26,4 @@ serde_urlencoded = { version = "0.7" }
 
 [features]
 default = []
-cookies = ["api_req/cookies"]
+cookies = []
