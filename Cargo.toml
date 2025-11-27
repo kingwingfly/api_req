@@ -1,6 +1,6 @@
 [workspace]
 members = ["api_req", "api_req_derive", "test"]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 repository = "https://github.com/kingwingfly/api_req"
