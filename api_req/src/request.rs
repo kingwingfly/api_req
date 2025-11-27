@@ -87,17 +87,15 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        if this.payload.is_some() {
-            let payload = this.payload.take().unwrap();
+        if let Some(payload) = this.payload.take() {
             let client = this.client.clone();
             let base_url = this.base_url.drain(..).collect::<String>();
             let future = Box::pin(async move {
                 let mut req = client.request(
                     P::METHOD,
                     Url::parse(&base_url)
-                        .unwrap()
-                        .join(&payload.path().unwrap_or_default())
-                        .unwrap(),
+                        .and_then(|base| base.join(&payload.path().unwrap_or_default()))
+                        .map_err(|e| ApiErr::Other(e.to_string()))?,
                 );
                 req = payload.req_option(req);
                 let resp = req.send().await?;

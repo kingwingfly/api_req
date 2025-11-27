@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![deny(missing_docs, rustdoc::broken_intra_doc_links)]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod api_caller;
 mod payload;
@@ -19,7 +19,7 @@ use proc_macro::TokenStream;
 /// #[api_req(
 ///     path = "/api/v1/{id}",  // format `id` from struct field
 ///     method = Method::GET,
-///     headers = (("k1", "v1"), ("k2", "{x}")) // format `x` from struct field
+///     headers = [("k1", "v1"), ("k2", "{x}")] // format `x` from struct field
 /// )]
 /// struct Test {
 ///     #[serde(skip_serializing)]
@@ -47,8 +47,9 @@ pub fn derive_payload(input: TokenStream) -> TokenStream {
 /// #[derive(ApiCaller)]
 /// #[api_req(
 ///     base_url = "http://example.com",
-///     default_headers = (("k1", "v1"), (header::ORIGIN, "v2")),
-///     default_headers_env = (("k3", "API_KEY"),)  // `,` is essential
+///     default_headers = [("k1", "v1"), (header::ORIGIN, "v2")],
+///     default_headers_env = [("k3", "API_KEY")],
+///     default_headers_env_or_default = [("k4", "BALABALA")],
 /// )]
 /// struct ExampleApi;
 /// ```

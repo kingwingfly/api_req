@@ -1,7 +1,10 @@
 use proc_macro::TokenStream;
 use quote::{ToTokens as _, quote};
 use regex::Regex;
-use syn::{DeriveInput, Expr, ExprTuple, Ident, LitStr, parse_macro_input, parse2};
+use syn::{
+    DeriveInput, Error, Expr, ExprArray, ExprTuple, Ident, LitStr, parse_macro_input, parse2,
+    spanned::Spanned,
+};
 
 pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -21,12 +24,11 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
         .attrs
         .iter()
         .find(|&attr| attr.path().is_ident("api_req"))
-    {
-        attr.parse_nested_meta(|meta| {
+        && let Err(e) = attr.parse_nested_meta(|meta| {
             match &meta.path {
                 item if item.is_ident("path") => {
                     let value = meta.value()?;
-                    let p: LitStr = value.parse().unwrap();
+                    let p = value.parse::<LitStr>()?;
                     let format_args = re
                         .captures_iter(&p.value())
                         .map(|c| c.extract::<1>())
@@ -38,23 +40,26 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
                             format!("{acc}, {x}=self.{x}")
                         });
                     let p = format!("format!({p})");
-                    path = syn::parse_str(&p)
-                        .map_err(|_| format!("cannot convert: {p}"))
-                        .unwrap();
+                    path = syn::parse_str(&p)?;
                 }
                 item if item.is_ident("method") => {
                     let value = meta.value()?;
-                    method = value.parse().unwrap();
+                    method = value.parse()?;
                 }
                 item if item.is_ident("headers") => {
                     let value = meta.value()?;
-                    let kvs: ExprTuple = value.parse().unwrap();
-                    for kv in kvs.elems {
-                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
-                        let mut kv = kv.elems.into_iter();
-                        headers_key.push(kv.next().unwrap());
-                        let mut value = kv.next().unwrap();
-                        if let Ok(v) = parse2::<LitStr>(value.clone().into_token_stream()) {
+                    let kvs: ExprArray = value.parse()?;
+                    for kv_expr in kvs.elems {
+                        let kv: ExprTuple = parse2(kv_expr.to_token_stream())?;
+                        let mut kv = kv.elems.into_iter().collect::<Vec<_>>();
+                        if kv.len() != 2 {
+                            Err(Error::new(kv_expr.span(), format!(
+                                "(header_key, header_value) expected, which contains 2 elems, but got {} elems", kv.len()
+                            )))?
+                        }
+                        headers_key.push(kv.remove(0));
+                        let mut value = kv.remove(0);
+                        if let Ok(v) = parse2::<LitStr>(value.to_token_stream()) {
                             let format_args = re
                                 .captures_iter(&v.value())
                                 .map(|c| c.extract::<1>())
@@ -66,34 +71,30 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
                                     format!("{acc}, {x}=self.{x}")
                                 });
                             let v = format!("format!({v})");
-                            value = syn::parse_str(&v)
-                                .map_err(|_| format!("cannot convert: {v}"))
-                                .unwrap();
+                            value = syn::parse_str(&v)?;
                         }
                         headers_value.push(value);
                     }
                 }
                 item if item.is_ident("req") => {
                     let value = meta.value()?;
-                    req = value.parse().unwrap();
+                    req = value.parse()?;
                 }
                 item if item.is_ident("before_deserialize") => {
                     let value = meta.value()?;
-                    before_deserialize = Some(value.parse().unwrap());
+                    before_deserialize = Some(value.parse()?);
                 }
                 item if item.is_ident("deserialize") => {
                     let value = meta.value()?;
-                    deserialize = value.parse().ok();
+                    deserialize = Some(value.parse()?);
                 }
-                item => Err(meta.error(format!(
-                    "unsupported attribute: {}",
-                    item.get_ident().unwrap()
-                )))?,
+                item => Err(Error::new(item.span(), "unsupported meta"))?,
             }
             Ok(())
         })
-        .unwrap();
-    };
+    {
+        return e.to_compile_error().into();
+    }
 
     let headers = if headers_key.is_empty() {
         quote! { None }
@@ -145,7 +146,7 @@ pub(crate) fn derive_payload(input: TokenStream) -> TokenStream {
             }
 
             fn deserialize<O: ::api_req::__serde::de::DeserializeOwned>(input: String) -> ::api_req::error::ApiResult<O> {
-                #deserialize_expanded(&input).map_err(|_| ::api_req::error::ApiErr::UnDeserializeable(input))
+                #deserialize_expanded(&input).map_err(|e| ::api_req::error::ApiErr::UnDeserializeable(e.to_string()))
             }
         }
     };

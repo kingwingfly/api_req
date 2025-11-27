@@ -8,9 +8,9 @@ use core::fmt;
 pub enum ApiErr {
     /// Reqwest error
     Reqwest(reqwest::Error),
-    /// Serde error; Contains the returned body
+    /// Serde error
     UnDeserializeable(String),
-    /// Other error
+    /// Other errors
     Other(String),
 }
 

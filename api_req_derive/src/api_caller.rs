@@ -1,9 +1,12 @@
 use proc_macro::TokenStream;
 use quote::{ToTokens as _, quote};
-use syn::{DeriveInput, Expr, ExprTuple, parse_macro_input, parse2};
+use syn::{
+    DeriveInput, Error, Expr, ExprArray, ExprTuple, parse_macro_input, parse2, spanned::Spanned,
+};
 
 pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+    let input_span = input.span();
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
@@ -12,55 +15,95 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
     let mut default_headers_value: Vec<Expr> = vec![];
     let mut default_headers_env_key: Vec<Expr> = vec![];
     let mut default_headers_env_value: Vec<Expr> = vec![];
+    let mut default_headers_env_key_or_omit: Vec<Expr> = vec![];
+    let mut default_headers_env_value_or_omit: Vec<Expr> = vec![];
     let mut redirect: Option<Expr> = None;
 
-    if let Some(attr) = input
+    let Some(attr) = input
         .attrs
         .iter()
         .find(|&attr| attr.path().is_ident("api_req"))
-    {
-        attr.parse_nested_meta(|meta| {
-            match &meta.path {
-                item if item.is_ident("base_url") => {
-                    let value = meta.value()?;
-                    base_url = value.parse().ok();
-                }
-                item if item.is_ident("default_headers") => {
-                    let value = meta.value()?;
-                    let kvs: ExprTuple = value.parse().unwrap();
-                    for kv in kvs.elems {
-                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
-                        let mut kv = kv.elems.into_iter();
-                        default_headers_key.push(kv.next().unwrap());
-                        default_headers_value.push(kv.next().unwrap());
-                    }
-                }
-                item if item.is_ident("default_headers_env") => {
-                    let value = meta.value()?;
-                    let kvs: ExprTuple = value.parse().unwrap();
-                    for kv in kvs.elems {
-                        let kv: ExprTuple = parse2(kv.into_token_stream()).unwrap();
-                        let mut kv = kv.elems.into_iter();
-                        default_headers_env_key.push(kv.next().unwrap());
-                        default_headers_env_value.push(kv.next().unwrap());
-                    }
-                }
-                item if item.is_ident("redirect") => {
-                    let value = meta.value()?;
-                    redirect = Some(value.parse().unwrap());
-                }
-                item => Err(meta.error(format!(
-                    "unsupported attribute: {}",
-                    item.get_ident().unwrap()
-                )))?,
+    else {
+        return Error::new(input_span, "api_req attribute is needed")
+            .to_compile_error()
+            .into();
+    };
+
+    if let Err(e) = attr.parse_nested_meta(|meta| {
+        match &meta.path {
+            item if item.is_ident("base_url") => {
+                let value = meta.value()?;
+                base_url = Some(value.parse()?);
             }
-            Ok(())
-        })
-        .unwrap();
+            item if item.is_ident("default_headers") => {
+                let value = meta.value()?;
+                let kvs: ExprArray = value.parse()?;
+                for kv_expr in kvs.elems.iter() {
+                    let kv: ExprTuple = parse2(kv_expr.to_token_stream())?;
+                    let mut kv = kv.elems.into_iter().collect::<Vec<_>>();
+                    if kv.len() != 2 {
+                        Err(Error::new(
+                            kv_expr.span(),
+                            format!(
+                                "(header_key, header_value) expected, which contains 2 elems, but got {} elems", kv.len()
+                            )
+                        ))?;
+                    }
+                    default_headers_key.push(kv.remove(0));
+                    default_headers_value.push(kv.remove(0));
+                }
+            }
+            item if item.is_ident("default_headers_env") => {
+                let value = meta.value()?;
+                let kvs: ExprArray = value.parse()?;
+                for kv_expr in kvs.elems.iter() {
+                    let kv: ExprTuple = parse2(kv_expr.to_token_stream())?;
+                    let mut kv = kv.elems.into_iter().collect::<Vec<_>>();
+                    if kv.len() != 2 {
+                        Err(Error::new(
+                            kv_expr.span(),
+                            format!(
+                                "(header_key, env_var) expected, which contains 2 elems, but got {} elems", kv.len()
+                            )
+                        ))?;
+                    }
+                    default_headers_env_key.push(kv.remove(0));
+                    default_headers_env_value.push(kv.remove(0));
+                }
+            }
+            item if item.is_ident("default_headers_env_or_default") => {
+                let value = meta.value()?;
+                let kvs: ExprArray = value.parse()?;
+                for kv_expr in kvs.elems.iter() {
+                    let kv: ExprTuple = parse2(kv_expr.to_token_stream())?;
+                    let mut kv = kv.elems.into_iter().collect::<Vec<_>>();
+                    if kv.len() != 2 {
+                        Err(Error::new(
+                            kv_expr.span(),
+                            format!(
+                                "(header_key, env_var) expected, which contains 2 elems, but got {} elems", kv.len()
+                            )
+                        ))?;
+                    }
+                    default_headers_env_key_or_omit.push(kv.remove(0));
+                    default_headers_env_value_or_omit.push(kv.remove(0));
+                }
+            }
+            item if item.is_ident("redirect") => {
+                let value = meta.value()?;
+                redirect = Some(value.parse().unwrap());
+            }
+            item => Err(Error::new(item.span(), "unsupported meta"))?,
+        }
+        Ok(())
+    }) {
+        return e.to_compile_error().into();
     };
 
     if base_url.is_none() {
-        panic!("base_url must be provided");
+        return Error::new(input_span, "base_url must be provided")
+            .to_compile_error()
+            .into();
     }
 
     let redirct = match redirect {
@@ -103,6 +146,16 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                                 #default_headers_env_key,
                                 value
                             );
+                        )*
+                        #(
+                            if let Ok(v) = ::std::env::var(#default_headers_env_value_or_omit) {
+                                let mut value: ::api_req::header::HeaderValue = v.parse().unwrap();
+                                value.set_sensitive(true);
+                                default_headers.insert(
+                                    #default_headers_env_key_or_omit,
+                                    value
+                                );
+                            }
                         )*
                         builder.default_headers(default_headers).build().unwrap()
                     }

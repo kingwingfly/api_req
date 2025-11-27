@@ -9,8 +9,10 @@ use crate::{Payload, Request};
 
 /// The cookies jar all callers' using.
 ///
-/// Different API callers use different base_urls (domains), so a static global cookie jar is more
-/// suitable than many jars for each caller.
+/// Different API callers use different base_urls (domains), and cookies won't be share between domains,
+/// so a static global cookie jar is more suitable than many jars for each caller.
+///
+/// And maybe your browser does in the same way.
 #[cfg(feature = "cookies")]
 pub static COOKIE_JAR: LazyLock<std::sync::Arc<reqwest::cookie::Jar>> =
     LazyLock::new(|| std::sync::Arc::new(reqwest::cookie::Jar::default()));
@@ -25,8 +27,9 @@ pub static COOKIE_JAR: LazyLock<std::sync::Arc<reqwest::cookie::Jar>> =
 /// #[derive(ApiCaller)]
 /// #[api_req(
 ///     base_url = "http://example.com",
-///     default_headers = (("k1", "v1"), (header::ORIGIN, "v2")),
-///     default_headers_env = (("k3", "API_KEY"),),  // header value from env; `,` is essential in tuple
+///     default_headers = [("k1", "v1"), (header::ORIGIN, "v2")],
+///     default_headers_env = [("k3", "API_KEY")],  // header value from env, panic if not presented
+///     default_headers_env_or_default = [("k4", "BALABALA")],   // omit if not presented
 ///     redirect = RedirectPolicy::none()
 /// )]
 /// struct ExampleApi;

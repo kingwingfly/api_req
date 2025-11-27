@@ -35,7 +35,7 @@ use serde::{Serialize, Deserialize};
 #[api_req(
     path = "/payments/{customer_id}",
     method = Method::POST,
-    headers = ((header::AUTHORIZATION, "Bearer token {bearer_token}"),),
+    headers = [(header::AUTHORIZATION, "Bearer token {bearer_token}")],
     req = form,  // use `form` to set body format instead of the default `json`
     before_deserialize = |text: String | text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),   // strip prefix, or original content if failed. `|String| -> Result<String, String>`
     deserialize = serde_urlencoded::from_str,   // deserialize with serde_urlencoded instead of the default serde_json
@@ -56,8 +56,8 @@ struct ExampleResponse {
 #[derive(ApiCaller)]
 #[api_req(
     base_url = "http://example.com",
-    default_headers = ((header::USER_AGENT, "..."),),
-    default_headers_env = (("api-key", "API_KEY"),),    // get from env
+    default_headers = [(header::USER_AGENT, "...")],
+    default_headers_env = [("api-key", "API_KEY")],    // get from env
     redirect = RedirectPolicy::none()   // set redirect policy
 )]
 struct ExampleApi;

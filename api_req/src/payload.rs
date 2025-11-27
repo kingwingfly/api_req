@@ -17,7 +17,7 @@ use serde::{Serialize, de::DeserializeOwned};
 ///     path = "/api/v1/{payment_id}",  // format `payment_id` from struct field
 ///     method = Method::GET,
 ///     // headers added to the default headers
-///     headers = (("k1", "v1"), ("header", "{header}")),  // format `header` from struct field
+///     headers = [("k1", "v1"), ("header", "{header}")],  // format `header` from struct field
 ///     req = query,    // `RequestBuilder::query` will be used; Can also be `json`, `form` as you need
 ///     // strip the prefix before deserialize; `F: FnOnce(String) -> Result<String, String>`
 ///     before_deserialize = |text: String| text.strip_prefix("&&&START&&&").map(ToOwned::to_owned).ok_or(text),
@@ -63,6 +63,6 @@ pub trait Payload: Send + Sync + Serialize + 'static {
 
     /// deserialize
     fn deserialize<O: DeserializeOwned>(input: String) -> ApiResult<O> {
-        serde_json::from_str(&input).map_err(|_| ApiErr::UnDeserializeable(input))
+        serde_json::from_str(&input).map_err(|e| ApiErr::UnDeserializeable(e.to_string()))
     }
 }

@@ -2,6 +2,8 @@ Make API calls more easier!
 
 In `v0.3`, the attribute in derive macros is changed to `#[api_req(...)]` instead of `#[api(...)]` and `#[payload(...)]`.
 
+In `v0.5`, we have better error spanned in proc-macro. And use array for headers instead of tuple. Add `default_headers_env_value_or_omit` attribute meta.
+
 # Advantage
 For example:
 ```rust ignore
@@ -35,9 +37,9 @@ use serde::{Serialize, Deserialize};
 #[api_req(
     path = "/payments/{customer_id}",
     method = Method::POST,
-    headers = ((header::AUTHORIZATION, "Bearer token {bearer_token}"),),
+    headers = [(header::AUTHORIZATION, "Bearer token {bearer_token}")],
     req = form,  // use `form` to set body format instead of the default `json`
-    before_deserialize = |text: String | text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),   // strip prefix, or original content if failed. `|String| -> Result<String, String>`
+    before_deserialize = |text: String| text.strip_prefix("START: ").map(ToOwned::to_owned).ok_or(text),   // strip prefix, or original content if failed. `|String| -> Result<String, String>`
     deserialize = serde_urlencoded::from_str,   // deserialize with serde_urlencoded instead of the default serde_json
 )]
 pub struct ExamplePayload {
@@ -56,8 +58,9 @@ struct ExampleResponse {
 #[derive(ApiCaller)]
 #[api_req(
     base_url = "http://example.com",
-    default_headers = ((header::USER_AGENT, "..."),),
-    default_headers_env = (("api-key", "API_KEY"),),    // get from env
+    default_headers = [(header::USER_AGENT, "...")],
+    default_headers_env = [("api-key", "API_KEY")],    // get from env, panic if not presented
+    default_headers_env_or_default = [("bala", "BALABALA")],   // omit if not presented
     redirect = RedirectPolicy::none()   // set redirect policy
 )]
 struct ExampleApi;
