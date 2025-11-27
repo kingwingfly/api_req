@@ -16,7 +16,7 @@ proc-macro = true
 [dependencies]
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
-regex = { version = "1.11" }
+regex = { version = "1.12" }
 
 [dev-dependencies]
 api_req = { path = "../api_req", version = "0.5" }
