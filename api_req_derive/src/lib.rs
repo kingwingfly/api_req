@@ -49,7 +49,7 @@ pub fn derive_payload(input: TokenStream) -> TokenStream {
 ///     base_url = "http://example.com",
 ///     default_headers = [("k1", "v1"), (header::ORIGIN, "v2")],
 ///     default_headers_env = [("k3", "API_KEY")],
-///     default_headers_env_or_default = [("k4", "BALABALA")],
+///     default_headers_env_or_omit = [("k4", "BALABALA")],
 /// )]
 /// struct ExampleApi;
 /// ```

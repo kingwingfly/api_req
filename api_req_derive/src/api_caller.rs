@@ -71,7 +71,7 @@ pub(crate) fn derive_api_caller(input: TokenStream) -> TokenStream {
                     default_headers_env_value.push(kv.remove(0));
                 }
             }
-            item if item.is_ident("default_headers_env_or_default") => {
+            item if item.is_ident("default_headers_env_or_omit") => {
                 let value = meta.value()?;
                 let kvs: ExprArray = value.parse()?;
                 for kv_expr in kvs.elems.iter() {

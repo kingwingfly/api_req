@@ -29,7 +29,7 @@ pub static COOKIE_JAR: LazyLock<std::sync::Arc<reqwest::cookie::Jar>> =
 ///     base_url = "http://example.com",
 ///     default_headers = [("k1", "v1"), (header::ORIGIN, "v2")],
 ///     default_headers_env = [("k3", "API_KEY")],  // header value from env, panic if not presented
-///     default_headers_env_or_default = [("k4", "BALABALA")],   // omit if not presented
+///     default_headers_env_or_omit = [("k4", "BALABALA")],   // omit if not presented
 ///     redirect = RedirectPolicy::none()
 /// )]
 /// struct ExampleApi;

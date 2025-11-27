@@ -60,7 +60,7 @@ struct ExampleResponse {
     base_url = "http://example.com",
     default_headers = [(header::USER_AGENT, "...")],
     default_headers_env = [("api-key", "API_KEY")],    // get from env, panic if not presented
-    default_headers_env_or_default = [("bala", "BALABALA")],   // omit if not presented
+    default_headers_env_or_omit = [("bala", "BALABALA")],   // omit if not presented
     redirect = RedirectPolicy::none()   // set redirect policy
 )]
 struct ExampleApi;
