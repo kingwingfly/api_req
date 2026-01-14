@@ -1,6 +1,6 @@
 [package]
 name = "api_req"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2024"
 license = "MIT"
 documentation = "https://docs.rs/api_req"
@@ -12,7 +12,7 @@ all-features = true
 
 [dependencies]
 api_req_derive = { path = "../api_req_derive", version = "0.5" }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1" }
 serde_urlencoded = { version = "0.7" }
